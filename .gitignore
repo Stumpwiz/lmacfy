@@ -1,0 +1,39 @@
+# Ignore virtual environment
+venv/
+.env/
+.venv/
+env/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore logs and IDE files
+*.log
+logs/
+*.sqlite3
+*.db
+*.sqlite
+
+# Ignore PyCharm files
+.idea/
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment variables (API keys, credentials)
+.env
+*.env
+
+# Ignore dependency lock files (optional, if you regenerate them)
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ignore temporary files
+*.tmp
+*.bak
+
+
+
