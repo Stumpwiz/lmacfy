@@ -86,4 +86,7 @@ def ask():
     return render_template_string(TEMPLATE, question=question, answer=answer, share_url=share_url)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
