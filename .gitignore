@@ -26,6 +26,7 @@ logs/
 # Ignore environment variables (API keys, credentials)
 .env
 *.env
+!.env.example
 
 # Ignore dependency lock files (optional, if you regenerate them)
 pip-log.txt
@@ -34,6 +35,13 @@ pip-delete-this-directory.txt
 # Ignore temporary files
 *.tmp
 *.bak
+
+# Docker files
+*.dockerfile.bak
+
+# AWS files
+apprunner-config.json
+.aws-credentials
 
 
 

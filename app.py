@@ -1,92 +1,119 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 import openai
 import os
+import logging
+from urllib.parse import urlencode
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file (for local development)
+load_dotenv()
 
 app = Flask(__name__)
 
-# Set up OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Let Me Ask ChatGPT For You</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script>
-        function typeEffect(text, elementId, speed) {
-            let i = 0;
-            function type() {
-                if (i < text.length) {
-                    document.getElementById(elementId).innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed);
-                }
-            }
-            type();
-        }
+# Validate and set up OpenAI API Key
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    logger.error("OPENAI_API_KEY environment variable is not set!")
+    raise ValueError("OPENAI_API_KEY environment variable is required. Please set it in your environment or .env file.")
 
-        function copyToClipboard() {
-            let copyText = document.getElementById("share_url").href;
-            navigator.clipboard.writeText(copyText);
-            alert("Link copied to clipboard!");
-        }
+openai.api_key = api_key
 
-        function toggleDarkMode() {
-            document.body.classList.toggle("bg-dark");
-            document.body.classList.toggle("text-light");
-        }
+# Configure model (default to gpt-4o-mini)
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+logger.info(f"Using OpenAI model: {OPENAI_MODEL}")
 
-        function showLoading() {
-            document.getElementById("loading").style.display = "block";
-            document.getElementById("answer").innerHTML = "";
-        }
 
-        window.onload = function() {
-            let answer = "{{ answer | safe }}";
-            document.getElementById("loading").style.display = "none";
-            typeEffect(answer, "answer", 50);
-        };
-    </script>
-</head>
-<body class="container mt-5">
-    <div class="card p-4">
-        <h1 class="mb-3">Let Me Ask ChatGPT For You</h1>
-        <button class="btn btn-secondary mb-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
-        <form method="GET" action="/" onsubmit="showLoading()">
-            <div class="mb-3">
-                <input type="text" class="form-control" name="q" placeholder="Ask a question..." required>
-            </div>
-            <button type="submit" class="btn btn-primary">Ask</button>
-        </form>
-        <p id="loading" style="display: none;" class="mt-3"><span class="spinner-border"></span> Generating answer...</p>
-        <p><strong>Question:</strong> {{ question }}</p>
-        <p><strong>Answer:</strong> <span id="answer"></span></p>
-        <p>Share this: <a id="share_url" href="{{ share_url }}">{{ share_url }}</a>
-           <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard()">Copy Link</button></p>
-    </div>
-</body>
-</html>
-"""
+def get_chatgpt_answer(question: str) -> str:
+    """
+    Query OpenAI's GPT-4o-mini model with error handling.
 
-def get_chatgpt_answer(question):
-    client = openai.OpenAI()
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "You are a helpful assistant."},
-                  {"role": "user", "content": question}]
-    )
-    return response.choices[0].message.content
+    Args:
+        question: The user's question string
+
+    Returns:
+        str: The AI-generated answer
+
+    Raises:
+        Exception: Re-raises exceptions after logging for the caller to handle
+    """
+    try:
+        logger.info(f"Querying OpenAI API for question: {question[:50]}...")
+        client = openai.OpenAI()
+
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[  # type: ignore[arg-type]
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": question}
+            ],
+            max_tokens=500,  # Limit response length for cost control
+            temperature=0.7
+        )
+        answer = response.choices[0].message.content
+        logger.info("Successfully received answer from OpenAI API")
+        return answer
+    except openai.RateLimitError as e:
+        logger.error(f"OpenAI rate limit exceeded: {e}")
+        raise Exception("API rate limit exceeded. Please try again later.")
+    except openai.AuthenticationError as e:
+        logger.error(f"OpenAI authentication failed: {e}")
+        raise Exception("API authentication failed. Please check your API key.")
+    except openai.APIConnectionError as e:
+        logger.error(f"OpenAI API connection error: {e}")
+        raise Exception("Unable to connect to OpenAI API. Please check your internet connection.")
+    except Exception as e:
+        logger.error(f"Unexpected error calling OpenAI API: {e}")
+        raise Exception("An unexpected error occurred. Please try again.")
+
 
 @app.route('/')
 def ask():
-    question = request.args.get('q', 'What is AI?')
-    answer = get_chatgpt_answer(question)
-    share_url = request.host_url + '?q=' + question.replace(' ', '+')
-    return render_template_string(TEMPLATE, question=question, answer=answer, share_url=share_url)
+    """
+    Main route handler for the application.
+    Accepts a question via query parameter 'q' and returns an AI-generated answer.
+    """
+    question = request.args.get('q', '')
+
+    # If no question provided, show the form without any answer
+    if not question:
+        return render_template('index.html', question=None, answer=None, error=None)
+
+    try:
+        # Get answer from ChatGPT
+        answer = get_chatgpt_answer(question)
+
+        # Create a properly encoded share URL
+        query_params = urlencode({'q': question})
+        share_url = f"{request.host_url}?{query_params}"
+
+        return render_template(
+            'index.html',
+            question=question,
+            answer=answer,
+            share_url=share_url,
+            error=None
+        )
+    except Exception as e:
+        logger.error(f"Error processing request: {e}")
+        # Return an error page with a user-friendly message
+        return render_template(
+            'index.html',
+            question=question,
+            answer=None,
+            share_url=None,
+            error=str(e)
+        )
+
 
 if __name__ == '__main__':
-    import os
-
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"Starting Flask app on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
 
