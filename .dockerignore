@@ -56,5 +56,3 @@ logs/
 *.tmp
 *.bak
 
-# Heroku specific
-Procfile
