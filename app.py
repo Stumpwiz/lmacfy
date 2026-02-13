@@ -77,9 +77,12 @@ def get_chatgpt_answer(question: str) -> str:
 def ask():
     """
     Main route handler for the application.
-    Accepts a question via query parameter 'q' and returns an AI-generated answer.
+    Accepts a question via query parameter 'q' or 'ref' (for copilot.microsoft.com compatibility)
+    and returns an AI-generated answer.
     """
-    question = request.args.get('q', '')
+    # Support both 'q' and 'ref' parameters for copilot.microsoft.com compatibility
+    # 'ref' parameter is URL-encoded question from copilot.microsoft.com
+    question = request.args.get('q') or request.args.get('ref', '')
 
     # If no question provided, show the form without any answer
     if not question:
