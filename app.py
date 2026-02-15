@@ -77,9 +77,9 @@ def get_chatgpt_answer(question: str) -> str:
 def ask():
     """
     Main route handler for the application.
-    Accepts a question via query parameter 'q' and returns an AI-generated answer.
+    Accepts a question via query parameter 'q'  or ref and returns an AI-generated answer.
     """
-    question = request.args.get('q', '')
+    question = request.args.get('q') or request.args.get('ref', '')
 
     # If no question provided, show the form without any answer
     if not question:
@@ -116,4 +116,3 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"Starting Flask app on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
-
