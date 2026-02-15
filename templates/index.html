@@ -6,13 +6,15 @@
     <script>
         function typeEffect(text, elementId, speed) {
             let i = 0;
+
             function type() {
                 if (i < text.length) {
-                    document.getElementById(elementId).innerHTML += text.charAt(i);
+                    document.getElementById(elementId).textContent += text.charAt(i);
                     i++;
                     setTimeout(type, speed);
                 }
             }
+
             type();
         }
 
@@ -32,41 +34,43 @@
             document.getElementById("answer").innerHTML = "";
         }
 
-        window.onload = function() {
-            let answer = "{{ answer | safe }}";
+        window.onload = function () {
+            let answer = {{ answer | tojson }};
             if (answer) {
                 document.getElementById("loading").style.display = "none";
-                typeEffect(answer, "answer", 50);
+                typeEffect(answer, "answer", 20);
             }
         };
     </script>
 </head>
 <body class="container mt-5">
-    <div class="card p-4">
-        <h1 class="mb-3">Let Me Ask ChatGPT For You</h1>
-        <button class="btn btn-secondary mb-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
-        <form method="GET" action="/" onsubmit="showLoading()">
-            <div class="mb-3">
-                <label for="question-input" class="form-label">Your Question:</label>
-                <input type="text" class="form-control" id="question-input" name="q" placeholder="Ask a question..." required>
-            </div>
-            <button type="submit" class="btn btn-primary">Ask</button>
-        </form>
+<div class="card p-4">
+    <h1 class="mb-3">Let Me Ask ChatGPT For You</h1>
+    <button class="btn btn-secondary mb-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <form method="GET" action="/" onsubmit="showLoading()">
+        <div class="mb-3">
+            <label for="question-input" class="form-label">Your Question:</label>
+            <input type="text" class="form-control" id="question-input" name="q" placeholder="Ask a question..."
+                   required>
+        </div>
+        <button type="submit" class="btn btn-primary">Ask</button>
+    </form>
 
-        {% if error %}
+    {% if error %}
         <div class="alert alert-danger mt-3" role="alert">
             <strong>Error:</strong> {{ error }}
         </div>
-        {% endif %}
+    {% endif %}
 
-        <p id="loading" style="display: none;" class="mt-3"><span class="spinner-border"></span> Generating answer...</p>
+    <p id="loading" style="display: none;" class="mt-3"><span class="spinner-border"></span> Generating answer...</p>
 
-        {% if question %}
+    {% if question %}
         <p><strong>Question:</strong> {{ question }}</p>
         <p><strong>Answer:</strong> <span id="answer"></span></p>
         <p>Share this: <a id="share_url" href="{{ share_url }}">{{ share_url }}</a>
-           <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard()">Copy Link</button></p>
-        {% endif %}
-    </div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard()">Copy Link</button>
+        </p>
+    {% endif %}
+</div>
 </body>
 </html>

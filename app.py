@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+import flask
 import openai
 import os
 import logging
@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file (for local development)
 load_dotenv()
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
 # Configure logging
 logging.basicConfig(
@@ -79,11 +79,11 @@ def ask():
     Main route handler for the application.
     Accepts a question via query parameter 'q'  or ref and returns an AI-generated answer.
     """
-    question = request.args.get('q') or request.args.get('ref', '')
+    question = flask.request.args.get('q') or flask.request.args.get('ref', '')
 
     # If no question provided, show the form without any answer
     if not question:
-        return render_template('index.html', question=None, answer=None, error=None)
+        return flask.render_template('index.html', question=None, answer=None, error=None)
 
     try:
         # Get answer from ChatGPT
@@ -91,9 +91,9 @@ def ask():
 
         # Create a properly encoded share URL
         query_params = urlencode({'q': question})
-        share_url = f"{request.host_url}?{query_params}"
+        share_url = f"{flask.request.host_url}?{query_params}"
 
-        return render_template(
+        return flask.render_template(
             'index.html',
             question=question,
             answer=answer,
@@ -103,7 +103,7 @@ def ask():
     except Exception as e:
         logger.error(f"Error processing request: {e}")
         # Return an error page with a user-friendly message
-        return render_template(
+        return flask.render_template(
             'index.html',
             question=question,
             answer=None,
