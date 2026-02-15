@@ -12,10 +12,6 @@ ENV PYTHONUNBUFFERED=1
 ARG APP_REV=dev
 ENV APP_REV=${APP_REV}
 
-# Install system dependencies (if needed)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -37,8 +33,7 @@ EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz').read()
-"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz').read()"
 
 # Run the application
 CMD ["python", "app.py"]
