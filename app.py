@@ -74,6 +74,13 @@ def get_chatgpt_answer(question: str) -> str:
         raise Exception("An unexpected error occurred. Please try again.")
 
 
+@app.route("/debug-env")
+def debug_env():
+    keys = ["PORT", "APP_REV", "OPENAI_MODEL"]
+    data = {k: os.environ.get(k) for k in keys}
+    return flask.jsonify(data), 200
+
+
 @app.route("/healthz")
 def healthz():
     return "ok", 200
