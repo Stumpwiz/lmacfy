@@ -1,3 +1,4 @@
+print("LMACFY BOOT: starting import phase", flush=True)
 import flask
 import openai
 import os
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = flask.Flask(__name__)
+print("LMACFY BOOT: Flask app created", flush=True)
 
 # Configure logging
 logging.basicConfig(
@@ -134,6 +136,7 @@ if __name__ == '__main__':
         port = int(os.environ.get("PORT", 5000))
         logger.info("Booting app. PORT=%s OPENAI_MODEL=%s APP_REV=%s",
                 os.environ.get("PORT"), os.environ.get("OPENAI_MODEL"), os.environ.get("APP_REV"))
+        print(f"LMACFY BOOT: binding on 0.0.0.0:{port}", flush=True)
         app.run(host="0.0.0.0", port=port, debug=False)
     except Exception:
         logger.exception("Fatal error during startup")
