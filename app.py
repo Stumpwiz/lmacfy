@@ -17,13 +17,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Validate and set up OpenAI API Key
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    logger.error("OPENAI_API_KEY environment variable is not set!")
-    raise ValueError("OPENAI_API_KEY environment variable is required. Please set it in your environment or .env file.")
 
-openai.api_key = api_key
+# Validate and set up OpenAI API Key
+def get_openai_client() -> openai.OpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY environment variable is not set")
+    return openai.OpenAI(api_key=api_key)
+
 
 # Configure model (default to gpt-4o-mini)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -45,7 +46,7 @@ def get_chatgpt_answer(question: str) -> str:
     """
     try:
         logger.info(f"Querying OpenAI API for question: {question[:50]}...")
-        client = openai.OpenAI()
+        client = get_openai_client()
 
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -71,6 +72,11 @@ def get_chatgpt_answer(question: str) -> str:
     except Exception as e:
         logger.error(f"Unexpected error calling OpenAI API: {e}")
         raise Exception("An unexpected error occurred. Please try again.")
+
+
+@app.route("/healthz")
+def healthz():
+    return "ok", 200
 
 
 @app.route('/')
