@@ -130,6 +130,11 @@ def ask():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    logger.info(f"Starting Flask app on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        logger.info("Booting app. PORT=%s OPENAI_MODEL=%s APP_REV=%s",
+                os.environ.get("PORT"), os.environ.get("OPENAI_MODEL"), os.environ.get("APP_REV"))
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception:
+        logger.exception("Fatal error during startup")
+
