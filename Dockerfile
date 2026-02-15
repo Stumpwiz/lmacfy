@@ -9,6 +9,8 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 # Prevents Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
+ARG APP_REV=dev
+ENV APP_REV=${APP_REV}
 
 # Install system dependencies (if needed)
 RUN apt-get update && apt-get install -y --no-install-recommends \

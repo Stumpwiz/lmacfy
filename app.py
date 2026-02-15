@@ -80,10 +80,12 @@ def ask():
     Accepts a question via query parameter 'q'  or ref and returns an AI-generated answer.
     """
     question = flask.request.args.get('q') or flask.request.args.get('ref', '')
+    build_id = os.environ.get("APP_REV", "dev")
 
     # If no question provided, show the form without any answer
     if not question:
-        return flask.render_template('index.html', question=None, answer=None, error=None)
+        return flask.render_template('index.html', question=None, answer=None, error=None,
+                                     build_id=build_id)
 
     try:
         # Get answer from ChatGPT
@@ -98,7 +100,8 @@ def ask():
             question=question,
             answer=answer,
             share_url=share_url,
-            error=None
+            error=None,
+            build_id=build_id
         )
     except Exception as e:
         logger.error(f"Error processing request: {e}")
@@ -108,7 +111,8 @@ def ask():
             question=question,
             answer=None,
             share_url=None,
-            error=str(e)
+            error=str(e),
+            build_id=build_id
         )
 
 

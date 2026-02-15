@@ -5,7 +5,8 @@
 # Default values
 REGION="us-east-1"
 REPOSITORY="lmacfy"
-IMAGE_TAG="latest"
+IMAGE_TAG=""
+PUSH_LATEST=false
 DEPLOY=false
 
 # Color codes
@@ -18,7 +19,7 @@ NC='\033[0m' # No Color
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
-    case $1 in
+    case "$1" in
         -r|--region)
             REGION="$2"
             shift 2
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             IMAGE_TAG="$2"
             shift 2
             ;;
+        --latest)
+            PUSH_LATEST=true
+            shift
+            ;;
         -d|--deploy)
             DEPLOY=true
             shift
@@ -41,9 +46,10 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -r, --region REGION       AWS region (default: us-east-1)"
             echo "  --repository NAME         ECR repository name (default: lmacfy)"
-            echo "  -t, --tag TAG            Docker image tag (default: latest)"
-            echo "  -d, --deploy             Trigger App Runner deployment"
-            echo "  -h, --help               Show this help message"
+            echo "  -t, --tag TAG             Docker image tag (default: <git short hash>)"
+            echo "  --latest                  Also tag/push the image as :latest"
+            echo "  -d, --deploy              Trigger App Runner deployment"
+            echo "  -h, --help                Show this help message"
             exit 0
             ;;
         *)
@@ -57,6 +63,10 @@ echo -e "${CYAN}=====================================${NC}"
 echo -e "${CYAN}LMACFY AWS Deployment Script${NC}"
 echo -e "${CYAN}=====================================${NC}"
 echo ""
+if [ ! -d .git ]; then
+  echo -e "${RED}✗ .git not found. Run this script from the repo root.${NC}"
+  exit 1
+fi
 
 # Check if AWS CLI is installed
 echo -e "${YELLOW}Checking AWS CLI...${NC}"
@@ -87,6 +97,16 @@ else
     exit 1
 fi
 
+# Determine git revision (APP_REV) and default image tag
+GIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+
+# If user didn't supply a tag, default to git hash
+if [ -z "$IMAGE_TAG" ]; then
+    IMAGE_TAG="$GIT_HASH"
+fi
+
+APP_REV="$GIT_HASH"
+
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 FULL_IMAGE_NAME="${ECR_URI}/${REPOSITORY}:${IMAGE_TAG}"
 
@@ -96,6 +116,7 @@ echo "  Region: ${REGION}"
 echo "  Repository: ${REPOSITORY}"
 echo "  Image Tag: ${IMAGE_TAG}"
 echo "  Full Image: ${FULL_IMAGE_NAME}"
+echo "  Git Rev (APP_REV): ${APP_REV}"
 echo ""
 
 # Authenticate Docker to ECR
@@ -124,7 +145,7 @@ fi
 # Build Docker image
 echo ""
 echo -e "${YELLOW}Building Docker image...${NC}"
-if docker build -t "${REPOSITORY}:${IMAGE_TAG}" .; then
+if docker build --build-arg APP_REV="${APP_REV}" -t "${REPOSITORY}:${IMAGE_TAG}" .; then
     echo -e "${GREEN}✓ Docker image built successfully${NC}"
 else
     echo -e "${RED}✗ Docker build failed${NC}"
@@ -144,6 +165,14 @@ if docker push "${FULL_IMAGE_NAME}"; then
 else
     echo -e "${RED}✗ Failed to push image to ECR${NC}"
     exit 1
+fi
+
+if [ "$PUSH_LATEST" = true ]; then
+    LATEST_IMAGE_NAME="${ECR_URI}/${REPOSITORY}:latest"
+    echo -e "${YELLOW}Also tagging and pushing :latest...${NC}"
+    docker tag "${REPOSITORY}:${IMAGE_TAG}" "${LATEST_IMAGE_NAME}"
+    docker push "${LATEST_IMAGE_NAME}"
+    echo -e "${GREEN}✓ Also pushed: ${LATEST_IMAGE_NAME}${NC}"
 fi
 
 echo ""
